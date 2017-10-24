@@ -4,7 +4,6 @@ extern crate quickcheck;
 extern crate rayon;
 
 use std::cmp::Ordering;
-use std::mem;
 use rayon::prelude::*;
 
 #[inline]
@@ -40,6 +39,21 @@ fn do_bitonic_sort_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
     assert!(is_zero_or_pow2(slice.len()));
     if slice.len() <= 1 {
         return;
+    } else if slice.len() < MIN_SORT {
+        if up {
+            slice.sort_unstable_by(|left, right| if by(left, right) {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            });
+        } else {
+            slice.sort_unstable_by(|left, right| if by(right, left) {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            });
+        }
+        return;
     }
 
     let half = slice.len() / 2;
@@ -50,35 +64,103 @@ fn do_bitonic_sort_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
     bitonic_merge_by(left, right, by, up);
 }
 
-#[inline]
-fn bitonic_split_and_merge_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
-    slice: &mut [T],
-    by: &F,
-    up: bool,
-) {
-    let half = slice.len() / 2;
-    let (left, right) = slice.split_at_mut(half);
-    bitonic_merge_by(left, right, by, up);
+#[cfg(not(test))]
+mod consts {
+    pub const MIN_COMPARE_CHUNKS: usize = 4096;
+    pub const MIN_PARALLEL_MERGE: usize = 2048;
+    pub const MIN_SORT: usize = 8192;
 }
 
+#[cfg(test)]
+mod consts {
+    pub const MIN_COMPARE_CHUNKS: usize = 4;
+    pub const MIN_PARALLEL_MERGE: usize = 2;
+    pub const MIN_SORT: usize = 8;
+}
+
+use consts::*;
+
+#[inline]
 fn bitonic_merge_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
     left: &mut [T],
     right: &mut [T],
     by: &F,
     up: bool,
 ) {
-    left.par_iter_mut().zip(right.par_iter_mut()).for_each(
-        |(a, b)| {
-            if by(a, b) != up {
-                mem::swap(a, b);
+    if left.len() < MIN_PARALLEL_MERGE {
+        serial_bitonic_merge_by(left, right, by, up);
+    } else {
+        parallel_bitonic_merge_by(left, right, by, up);
+    }
+}
+
+#[inline]
+fn bitonic_compare<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
+    left: &mut [T],
+    right: &mut [T],
+    by: &F,
+    up: bool,
+) {
+    if up {
+        for (a, b) in left.iter_mut().zip(right) {
+            unsafe {
+                std::ptr::swap(if by(b, a) { a } else { b }, b);
             }
+        }
+    } else {
+        for (a, b) in left.iter_mut().zip(right) {
+            unsafe {
+                std::ptr::swap(if by(a, b) { a } else { b }, b);
+            }
+        }
+    }
+}
+
+fn serial_bitonic_merge_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
+    left: &mut [T],
+    right: &mut [T],
+    by: &F,
+    up: bool,
+) {
+    bitonic_compare(left, right, by, up);
+    if left.len() <= 1 {
+        return;
+    }
+
+    let half = left.len() / 2;
+    {
+        let (left, right) = left.split_at_mut(half);
+        serial_bitonic_merge_by(left, right, by, up);
+    }
+    {
+        let (left, right) = right.split_at_mut(half);
+        serial_bitonic_merge_by(left, right, by, up);
+    }
+}
+
+fn parallel_bitonic_merge_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
+    left: &mut [T],
+    right: &mut [T],
+    by: &F,
+    up: bool,
+) {
+    left.par_chunks_mut(MIN_COMPARE_CHUNKS)
+        .zip(right.par_chunks_mut(MIN_COMPARE_CHUNKS))
+        .for_each(|(left_chunk, right_chunk)| {
+            bitonic_compare(left_chunk, right_chunk, by, up)
+        });
+
+    let half = left.len() / 2;
+    rayon::join(
+        || {
+            let (left, right) = left.split_at_mut(half);
+            bitonic_merge_by(left, right, by, up);
+        },
+        || {
+            let (left, right) = right.split_at_mut(half);
+            bitonic_merge_by(left, right, by, up);
         },
     );
-    if left.len() > 1 {
-        rayon::join(move || bitonic_split_and_merge_by(left, by, up), move || {
-            bitonic_split_and_merge_by(right, by, up)
-        });
-    }
 }
 
 fn is_zero_or_pow2(x: usize) -> bool {

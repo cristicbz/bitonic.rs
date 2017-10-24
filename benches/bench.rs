@@ -37,7 +37,7 @@ fn std_stable_32768(b: &mut Bencher) {
 
 #[bench]
 fn std_unstable_32768(b: &mut Bencher) {
-    bench_sorter(b, 32768, std_stable);
+    bench_sorter(b, 32768, std_unstable);
 }
 
 #[bench]
@@ -48,13 +48,28 @@ fn std_bitonic_32768(b: &mut Bencher) {
 
 
 #[bench]
+fn std_stable_65536(b: &mut Bencher) {
+    bench_sorter(b, 65536, std_stable);
+}
+
+#[bench]
+fn std_unstable_65536(b: &mut Bencher) {
+    bench_sorter(b, 65536, std_unstable);
+}
+
+#[bench]
+fn std_bitonic_65536(b: &mut Bencher) {
+    bench_sorter(b, 65536, bitonic::bitonic_sort);
+}
+
+#[bench]
 fn std_stable_128(b: &mut Bencher) {
     bench_sorter(b, 128, std_stable);
 }
 
 #[bench]
 fn std_unstable_128(b: &mut Bencher) {
-    bench_sorter(b, 128, std_stable);
+    bench_sorter(b, 128, std_unstable);
 }
 
 #[bench]
