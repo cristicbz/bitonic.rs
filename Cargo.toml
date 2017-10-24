@@ -1,0 +1,10 @@
+[package]
+authors = ["Cristi Cobzarenco <cristi.cobzarenco@gmail.com>"]
+name = "bitonic"
+version = "0.1.0"
+
+[dependencies]
+rayon = "0.8.2"
+
+[dev-dependencies]
+quickcheck = "0.4.1"
