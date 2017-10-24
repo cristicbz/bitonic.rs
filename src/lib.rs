@@ -10,6 +10,11 @@ use std::ptr;
 /// Sorts the slice using parallel bitonic sort.
 ///
 /// This sort isn't stable.
+///
+/// Panics
+/// ===
+///
+/// If the size of the array is not a power of two.
 #[inline]
 pub fn bitonic_sort<T: Send>(slice: &mut [T])
 where
@@ -21,6 +26,11 @@ where
 /// Sorts the slice with a key extraction function using parallel bitonic sort.
 ///
 /// This sort isn't stable.
+///
+/// Panics
+/// ===
+///
+/// If the size of the array is not a power of two.
 #[inline]
 pub fn bitonic_sort_by_key<T: Send, K, F: Send + Sync + Fn(&T) -> K>(slice: &mut [T], key: F)
 where
@@ -32,6 +42,11 @@ where
 /// Sorts the slice with comparator function using parallel bitonic sort.
 ///
 /// This sort isn't stable.
+///
+/// Panics
+/// ===
+///
+/// If the size of the array is not a power of two.
 #[inline]
 pub fn bitonic_sort_by<T: Send, F: Send + Sync + Fn(&T, &T) -> Ordering>(slice: &mut [T], by: F) {
     do_bitonic_sort_by(
