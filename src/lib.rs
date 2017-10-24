@@ -3,18 +3,24 @@
 extern crate quickcheck;
 extern crate rayon;
 
-use std::cmp::Ordering;
 use rayon::prelude::*;
+use std::cmp::Ordering;
+use std::ptr;
 
+/// Sorts the slice using parallel bitonic sort.
+///
+/// This sort isn't stable.
 #[inline]
-pub fn bitonic_sort_by<T: Send, F: Send + Sync + Fn(&T, &T) -> Ordering>(slice: &mut [T], by: F) {
-    do_bitonic_sort_by(
-        slice,
-        &|left, right| by(right, left) == Ordering::Greater,
-        true,
-    )
+pub fn bitonic_sort<T: Send>(slice: &mut [T])
+where
+    T: Ord,
+{
+    bitonic_sort_by(slice, Ord::cmp);
 }
 
+/// Sorts the slice with a key extraction function using parallel bitonic sort.
+///
+/// This sort isn't stable.
 #[inline]
 pub fn bitonic_sort_by_key<T: Send, K, F: Send + Sync + Fn(&T) -> K>(slice: &mut [T], key: F)
 where
@@ -23,12 +29,16 @@ where
     bitonic_sort_by(slice, |left, right| key(left).cmp(&key(right)));
 }
 
+/// Sorts the slice with comparator function using parallel bitonic sort.
+///
+/// This sort isn't stable.
 #[inline]
-pub fn bitonic_sort<T: Send>(slice: &mut [T])
-where
-    T: Ord,
-{
-    bitonic_sort_by(slice, Ord::cmp);
+pub fn bitonic_sort_by<T: Send, F: Send + Sync + Fn(&T, &T) -> Ordering>(slice: &mut [T], by: F) {
+    do_bitonic_sort_by(
+        slice,
+        &|left, right| by(right, left) == Ordering::Greater,
+        true,
+    )
 }
 
 fn do_bitonic_sort_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
@@ -104,13 +114,13 @@ fn bitonic_compare<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
     if up {
         for (a, b) in left.iter_mut().zip(right) {
             unsafe {
-                std::ptr::swap(if by(b, a) { a } else { b }, b);
+                ptr::swap(if by(b, a) { a } else { b }, b);
             }
         }
     } else {
         for (a, b) in left.iter_mut().zip(right) {
             unsafe {
-                std::ptr::swap(if by(a, b) { a } else { b }, b);
+                ptr::swap(if by(a, b) { a } else { b }, b);
             }
         }
     }

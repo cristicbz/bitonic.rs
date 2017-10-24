@@ -3,6 +3,14 @@ authors = ["Cristi Cobzarenco <cristi.cobzarenco@gmail.com>"]
 name = "bitonic"
 version = "0.1.0"
 
+description = "Parallel bitonic sort using rayon."
+homepage = "https://github.com/cristicbz/bitonic.rs"
+repository = "https://github.com/cristicbz/bitonic.rs"
+documentation = "https://docs.rs/bitonic"
+readme = "README.md"
+keywords = ["sort", "parallel", "rayon"]
+license = "MIT/Apache-2.0"
+
 [dependencies]
 rayon = "0.8.2"
 
