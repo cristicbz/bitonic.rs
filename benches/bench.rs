@@ -2,8 +2,10 @@
 
 extern crate test;
 extern crate bitonic;
+extern crate rayon;
 
 use test::{Bencher, black_box};
+use rayon::slice::ParallelSliceMut;
 
 
 fn bench_sorter<F>(b: &mut Bencher, size: u32, sorter: F)
@@ -30,9 +32,22 @@ fn std_unstable(slice: &mut [u32]) {
     slice.sort_unstable();
 }
 
+fn rayon_stable(slice: &mut [u32]) {
+    slice.par_sort();
+}
+
+fn rayon_unstable(slice: &mut [u32]) {
+    slice.par_sort_unstable();
+}
+
 #[bench]
 fn std_stable_32768(b: &mut Bencher) {
     bench_sorter(b, 32768, std_stable);
+}
+
+#[bench]
+fn rayon_stable_32768(b: &mut Bencher) {
+    bench_sorter(b, 32768, rayon_stable);
 }
 
 #[bench]
@@ -41,7 +56,12 @@ fn std_unstable_32768(b: &mut Bencher) {
 }
 
 #[bench]
-fn std_bitonic_32768(b: &mut Bencher) {
+fn rayon_unstable_32768(b: &mut Bencher) {
+    bench_sorter(b, 32768, rayon_unstable);
+}
+
+#[bench]
+fn bitonic_32768(b: &mut Bencher) {
     bench_sorter(b, 32768, bitonic::bitonic_sort);
 }
 
@@ -53,18 +73,34 @@ fn std_stable_65536(b: &mut Bencher) {
 }
 
 #[bench]
+fn rayon_stable_65536(b: &mut Bencher) {
+    bench_sorter(b, 65536, rayon_stable);
+}
+
+#[bench]
 fn std_unstable_65536(b: &mut Bencher) {
     bench_sorter(b, 65536, std_unstable);
 }
 
 #[bench]
-fn std_bitonic_65536(b: &mut Bencher) {
+fn rayon_unstable_65536(b: &mut Bencher) {
+    bench_sorter(b, 65536, rayon_unstable);
+}
+
+#[bench]
+fn bitonic_65536(b: &mut Bencher) {
     bench_sorter(b, 65536, bitonic::bitonic_sort);
 }
+
 
 #[bench]
 fn std_stable_128(b: &mut Bencher) {
     bench_sorter(b, 128, std_stable);
+}
+
+#[bench]
+fn rayon_stable_128(b: &mut Bencher) {
+    bench_sorter(b, 128, rayon_stable);
 }
 
 #[bench]
@@ -73,6 +109,11 @@ fn std_unstable_128(b: &mut Bencher) {
 }
 
 #[bench]
-fn std_bitonic_128(b: &mut Bencher) {
+fn rayon_unstable_128(b: &mut Bencher) {
+    bench_sorter(b, 128, rayon_unstable);
+}
+
+#[bench]
+fn bitonic_128(b: &mut Bencher) {
     bench_sorter(b, 128, bitonic::bitonic_sort);
 }
