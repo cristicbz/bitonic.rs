@@ -204,16 +204,6 @@ mod tests {
 
     use super::{bitonic_sort, bitonic_sort_by, bitonic_sort_by_key};
 
-    fn next_pow2(mut v: usize) -> usize {
-        v = v.wrapping_sub(1);
-        v |= v >> 1;
-        v |= v >> 2;
-        v |= v >> 4;
-        v |= v >> 8;
-        v |= v >> 16;
-        v.wrapping_add(1)
-    }
-
     fn frequencies<'a, T: Hash + Eq + 'a>(original: &'a [T]) -> HashMap<&'a T, usize> {
         let mut frequencies = HashMap::with_capacity(original.len());
         for item in original {
@@ -251,7 +241,7 @@ mod tests {
     }
 
     fn make_pow2_vec(mut xs: Vec<u32>) -> Vec<u32> {
-        let pow2len = next_pow2(xs.len());
+        let pow2len = xs.len().next_power_of_two(); 
         xs.resize(pow2len, 0u32);
         xs
     }
