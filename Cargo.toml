@@ -2,6 +2,7 @@
 authors = ["Cristi Cobzarenco <cristi.cobzarenco@gmail.com>"]
 name = "bitonic"
 version = "0.2.0"
+edition = "2021"
 
 description = "Parallel bitonic sort using rayon."
 homepage = "https://github.com/cristicbz/bitonic.rs"

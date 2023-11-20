@@ -1,8 +1,3 @@
-#[cfg(test)]
-#[macro_use]
-extern crate quickcheck;
-extern crate rayon;
-
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::ptr;
@@ -66,16 +61,20 @@ fn do_bitonic_sort_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
         return;
     } else if slice.len() < MIN_SORT {
         if up {
-            slice.sort_unstable_by(|left, right| if by(left, right) {
-                Ordering::Less
-            } else {
-                Ordering::Greater
+            slice.sort_unstable_by(|left, right| {
+                if by(left, right) {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
             });
         } else {
-            slice.sort_unstable_by(|left, right| if by(right, left) {
-                Ordering::Less
-            } else {
-                Ordering::Greater
+            slice.sort_unstable_by(|left, right| {
+                if by(right, left) {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
             });
         }
         return;
@@ -84,9 +83,10 @@ fn do_bitonic_sort_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
     {
         let half = slice.len() / 2;
         let (left, right) = slice.split_at_mut(half);
-        rayon::join(|| do_bitonic_sort_by(left, by, true), || {
-            do_bitonic_sort_by(right, by, false)
-        });
+        rayon::join(
+            || do_bitonic_sort_by(left, by, true),
+            || do_bitonic_sort_by(right, by, false),
+        );
     }
     bitonic_merge_by(slice, by, up);
 }
@@ -157,25 +157,26 @@ fn parallel_bitonic_merge_by<T: Send, F: Send + Sync + Fn(&T, &T) -> bool>(
     if up {
         left.par_chunks_mut(MIN_COMPARE_CHUNKS)
             .zip(right.par_chunks_mut(MIN_COMPARE_CHUNKS))
-            .for_each(|(left_chunk, right_chunk)| {
-                bitonic_compare(left_chunk, right_chunk, by)
-            });
+            .for_each(|(left_chunk, right_chunk)| bitonic_compare(left_chunk, right_chunk, by));
     } else {
         right
             .par_chunks_mut(MIN_COMPARE_CHUNKS)
             .zip(left.par_chunks_mut(MIN_COMPARE_CHUNKS))
-            .for_each(|(left_chunk, right_chunk)| {
-                bitonic_compare(left_chunk, right_chunk, by)
-            });
+            .for_each(|(left_chunk, right_chunk)| bitonic_compare(left_chunk, right_chunk, by));
     }
 
-    rayon::join(|| { bitonic_merge_by(left, by, up); }, || {
-        bitonic_merge_by(right, by, up);
-    });
+    rayon::join(
+        || {
+            bitonic_merge_by(left, by, up);
+        },
+        || {
+            bitonic_merge_by(right, by, up);
+        },
+    );
 }
 
 fn is_zero_or_pow2(x: usize) -> bool {
-    (x & (x.wrapping_sub(1)) == 0)
+    x & (x.wrapping_sub(1)) == 0
 }
 
 #[cfg(not(test))]
@@ -192,16 +193,16 @@ mod consts {
     pub const MIN_SORT: usize = 8;
 }
 
-use consts::*;
+use crate::consts::*;
 
 #[cfg(test)]
 mod tests {
+    use quickcheck::quickcheck;
+    use std::cmp::Ordering;
     use std::collections::HashMap;
     use std::hash::Hash;
-    use std::cmp::Ordering;
 
-    use super::{bitonic_sort_by, bitonic_sort, bitonic_sort_by_key};
-
+    use super::{bitonic_sort, bitonic_sort_by, bitonic_sort_by_key};
 
     fn next_pow2(mut v: usize) -> usize {
         v = v.wrapping_sub(1);
@@ -230,11 +231,10 @@ mod tests {
             return false;
         }
 
-        let result = sorted.iter().zip(sorted.iter().skip(1)).all(
-            |(current, next)| {
-                by(current, next) != Ordering::Greater
-            },
-        );
+        let result = sorted
+            .iter()
+            .zip(sorted.iter().skip(1))
+            .all(|(current, next)| by(current, next) != Ordering::Greater);
         result
     }
 
