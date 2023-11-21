@@ -1,12 +1,8 @@
 #![feature(test)]
-
 extern crate test;
-extern crate bitonic;
-extern crate rayon;
 
-use test::{Bencher, black_box};
 use rayon::slice::ParallelSliceMut;
-
+use test::{black_box, Bencher};
 
 fn bench_sorter<F>(b: &mut Bencher, size: u32, sorter: F)
 where
@@ -65,8 +61,6 @@ fn bitonic_32768(b: &mut Bencher) {
     bench_sorter(b, 32768, bitonic::bitonic_sort);
 }
 
-
-
 #[bench]
 fn std_stable_65536(b: &mut Bencher) {
     bench_sorter(b, 65536, std_stable);
@@ -91,7 +85,6 @@ fn rayon_unstable_65536(b: &mut Bencher) {
 fn bitonic_65536(b: &mut Bencher) {
     bench_sorter(b, 65536, bitonic::bitonic_sort);
 }
-
 
 #[bench]
 fn std_stable_128(b: &mut Bencher) {
